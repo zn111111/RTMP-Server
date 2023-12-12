@@ -13,9 +13,10 @@ code：pxrz
 
 ```shell
 1. make
-2. ./server
-3. ffmpeg -re -i video_name -c copy -f flv -y rtmp://server_ip:port/live
-4. vlc pull stream
+2. source ./profile.sh
+3. ./server
+4. ffmpeg -re -i video_name -c copy -f flv -y rtmp://server_ip:port/live
+5. vlc pull stream
 ```
 
 Here are the VLC versions that support the RTMP protocol:
