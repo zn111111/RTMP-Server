@@ -1,2 +1,7 @@
 .vscode/
 *.mp4
+binary_o/
+*.o
+
+server
+!server/
