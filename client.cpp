@@ -2,6 +2,7 @@
 #include "client.h"
 #include "all_kinds_of_messages.h"
 #include <unordered_map>
+#include "log.h"
 
 std::unordered_map<st_netfd_t, const char *> consumers;
 
@@ -36,10 +37,10 @@ void Client::cycle()
 {
     if (st_thread_create(process_thread, this, 0, 0) == NULL)
     {
-        printf("st thread create error\n");
+        LOG_ERROR("st thread create error");
         return;
     }
-    printf("st thread create success\n");
+    LOG_INFO("st thread create success");
 }
 
 void *Client::process_thread(void *arg)
@@ -51,7 +52,7 @@ void *Client::process_thread(void *arg)
         {
             return NULL;
         }
-        printf("handshake success\n");
+        LOG_INFO("handshake success");
 
         IO_Message *message_ptr = new ConnectMessage(client, client->stfd_client, client->io_socket, client->io_buffer);
         if (message_ptr->recv_message(client->received_message_length_buffer) == -1)
@@ -62,7 +63,7 @@ void *Client::process_thread(void *arg)
         delete message_ptr;
         message_ptr = NULL;
 
-        printf("recv connect messsage success\n");
+        LOG_INFO("recv connect messsage success");
 
         message_ptr = new Set_Window_Size(client, client->stfd_client, client->io_socket, client->io_buffer, 2.5 * 1000 * 1000);
         if (message_ptr->write_message(0, 2, 0, 4, 5, 0) == -1)
@@ -71,7 +72,7 @@ void *Client::process_thread(void *arg)
         }
         delete message_ptr;
         message_ptr = NULL;
-        printf("Set window size success\n");
+        LOG_INFO("Set window size success");
 
         message_ptr = new Set_Peer_Bandwidth(client, client->stfd_client, client->io_socket, client->io_buffer, 2.5 * 1000 * 1000, 2);
         if (message_ptr->write_message(0, 2, 0, 5, 6, 0) == -1)
@@ -81,7 +82,7 @@ void *Client::process_thread(void *arg)
         delete message_ptr;
         message_ptr = NULL;
 
-        printf("Set peer bandwidth success\n");
+        LOG_INFO("Set peer bandwidth success");
 
         message_ptr = new Send_Object_Message(client, client->stfd_client, client->io_socket, client->io_buffer, "_result", 1, CONNECT_APP_RESPONSE);
         int message_length = dynamic_cast<Send_Object_Message *>(message_ptr)->get_payload_size();
@@ -92,7 +93,7 @@ void *Client::process_thread(void *arg)
         delete message_ptr;
         message_ptr = NULL;
 
-        printf("send connect app response success\n");
+        LOG_INFO("send connect app response success");
 
         message_ptr = new Send_Object_Message(client, client->stfd_client, client->io_socket, client->io_buffer, "onBWDone", 0, ON_BW_DONE);
         message_length = dynamic_cast<Send_Object_Message *>(message_ptr)->get_payload_size();
@@ -103,7 +104,7 @@ void *Client::process_thread(void *arg)
         delete message_ptr;
         message_ptr = NULL;
 
-        printf("send on bw done success\n");
+        LOG_INFO("send on bw done success");
 
         //push flow or pull flow ?
         IdentifyClient *identify_client= new IdentifyClient(client, client->stfd_client, client->io_socket, client->io_buffer);
@@ -174,42 +175,42 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("set chunk size success\n");
+            LOG_INFO("set chunk size success");
 
             message_ptr = new SrcPCUCStreamBegin(client, client->stfd_client, client->io_socket, client->io_buffer);
             message_ptr->write_message(0, 2, 0, 6, 4, 0);
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send SrcPCUCStreamBegin success\n");
+            LOG_INFO("send SrcPCUCStreamBegin success");
 
             message_ptr = new PullStreamOnStatus(client, client->stfd_client, client->io_socket, client->io_buffer, "onStatus", 0, PULL_ONSTATUS1);
             message_ptr->write_message(0, 5, 0, 154, 20, 1);
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send onstatus1 success\n");
+            LOG_INFO("send onstatus1 success");
 
             message_ptr = new PullStreamOnStatus(client, client->stfd_client, client->io_socket, client->io_buffer, "onStatus", 0, PULL_ONSTATUS2);
             message_ptr->write_message(0, 5, 0, 148, 20, 1);
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send onstatus2 success\n");
+            LOG_INFO("send onstatus2 success");
 
             message_ptr = new RtmpSampleAccess(client, client->stfd_client, client->io_socket, client->io_buffer, "|RtmpSampleAccess");
             message_ptr->write_message(0, 5, 0, 24, 18, 1);
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send |RtmpSampleAccess success\n");
+            LOG_INFO("send |RtmpSampleAccess success");
 
             message_ptr = new PullStreamOnStatus3(client, client->stfd_client, client->io_socket, client->io_buffer, "onStatus");
             message_ptr->write_message(0, 5, 0, 44, 18, 1);
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send onstatus3 success\n");
+            LOG_INFO("send onstatus3 success");
 
             while (set_data_frame.empty())
             {
@@ -221,7 +222,7 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send OnMetaData success\n");
+            LOG_INFO("send OnMetaData success");
 
             consumers.insert(std::pair<st_netfd_t, const char *>(client->stfd_client, NULL));
 
@@ -243,7 +244,7 @@ void *Client::process_thread(void *arg)
 
 
                 //测试
-                printf("buffer size: %ld\n", audio_video_buffer.size());
+                // printf("buffer size: %ld\n", audio_video_buffer.size());
 
                 struct iovec iov[2];
                 char header[16] = {0};
@@ -323,7 +324,7 @@ void *Client::process_thread(void *arg)
                     {
                         return NULL;
                     }
-                    printf("nwrite: %ld\n", nwrite);
+                    LOG_INFO("nwrite: %ld", nwrite);
                     if (pos == const_cast<char *>(consumers.begin()->second + csid_header[curr_csid].header_length))
                     {
                         totol_payload_send += (nwrite - 12);
@@ -365,7 +366,7 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send release stream response success\n");
+            LOG_INFO("send release stream response success");
 
             message_ptr = new SetChunkSize(client, client->stfd_client, client->io_socket, client->io_buffer, 4096);
             message_ptr->write_message(0, 2, 0, 4, 1, 0);
@@ -373,7 +374,7 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("set chunk size success\n");
+            LOG_INFO("set chunk size success");
 
             //receive FC Publish command message
             message_ptr = new FCPublish(client, client->stfd_client, client->io_socket, client->io_buffer);
@@ -388,7 +389,7 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send fcpublish response success\n");
+            LOG_INFO("send fcpublish response success");
 
             //receive Create Stream command message
             message_ptr = new CreateStream(client, client->stfd_client, client->io_socket, client->io_buffer);
@@ -403,7 +404,7 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send create stream response success\n");
+            LOG_INFO("send create stream response success");
 
             //receive _checkbw command message
             message_ptr = new CheckBW(client, client->stfd_client, client->io_socket, client->io_buffer);
@@ -428,7 +429,7 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send onfcpublish response success\n");
+            LOG_INFO("send onfcpublish response success");
 
             message_ptr = new OnStatus(client, client->stfd_client, client->io_socket, client->io_buffer, 0);
             message_length = 136;
@@ -436,7 +437,7 @@ void *Client::process_thread(void *arg)
             delete message_ptr;
             message_ptr = NULL;
 
-            printf("send onstatus success\n");
+            LOG_INFO("send onstatus success");
 
             //receive @setDataFrame data messsage
             message_ptr = new SetDataFrame(client, client->stfd_client, client->io_socket, client->io_buffer);

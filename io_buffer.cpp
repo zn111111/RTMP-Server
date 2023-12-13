@@ -35,7 +35,7 @@ size_t IO_Buffer::find(char target, size_t pos)
 
 void IO_Buffer::print_buffer() const
 {
-    printf("buffer length: %ld\n", buffer.size());
+    // printf("buffer length: %ld\n", buffer.size());
     for (char c : buffer)
     {
         printf("%x ", (unsigned char)c);

@@ -4,6 +4,7 @@
 #include "util.h"
 #include "socket_demo_define.h"
 #include "client.h"
+#include "log.h"
 
 int curr_csid = 0;
 std::vector<std::pair<std::string, Value_Object *>> set_data_frame;
@@ -39,7 +40,7 @@ int IO_Message::recv_message(std::unordered_map<int, std::vector<int>> &received
     {
         return -1;
     }
-    printf("read basic header success, bh_size = %ld, fmt = %d, csid = %d\n", bh_size, fmt, csid);
+    LOG_INFO("read basic header success, bh_size = %ld, fmt = %d, csid = %d\n", bh_size, fmt, csid);
 
     size_t mh_size = 0;
     if (read_message_header(fmt, csid, bh_size, &mh_size, received_message_length_buffer) == -1)
@@ -51,8 +52,8 @@ int IO_Message::recv_message(std::unordered_map<int, std::vector<int>> &received
     {
         return -1;
     }
-    printf("recv message success\n");
 
+    LOG_INFO("recv message success");
     return 0;
 }
 
@@ -263,8 +264,7 @@ int IO_Message::read_message_header(int fmt, int csid, size_t bh_size, size_t *m
 
     timestamp += timestamp_delta;
 
-    printf("read message header success, mh_size = %ld, timestamp = %d, message_length = %d, message_type = %d, stream_id = %d\n", *mh_size, timestamp, message_length, message_type, stream_id);
-
+    LOG_INFO("read message header success, mh_size = %ld, timestamp = %d, message_length = %d, message_type = %d, stream_id = %d\n", *mh_size, timestamp, message_length, message_type, stream_id);
     return 0;
 }
 
@@ -538,23 +538,29 @@ int IO_Message::read_payload(int csid, size_t bh_size, size_t mh_size, int messa
     {
         if (command_name == "_checkbw")
         {
-            printf("drop _checkbw\n");
+            LOG_INFO("drop _checkbw");
             return 0;
         }
-        printf("command_name = %s, transaction_id = %ld, ", command_name.c_str(), transaction_id);
+        char buffer[4096] = {0};
+        int offset = 0;
+        snprintf(buffer, sizeof(buffer), "command_name = %s, transaction_id = %ld, ", command_name.c_str(), transaction_id);
+        offset = strlen(buffer);
         for (const auto &val : object)
         {
-            printf("%s = ", (val.first).c_str());
+            snprintf(buffer + offset, sizeof(buffer) - offset, "%s = ", (val.first).c_str());
+            offset = strlen(buffer);
             if (dynamic_cast<Value_Num *>(val.second))
             {
-                printf("%f ", ((Value_Num *)(val.second))->value);
+                snprintf(buffer + offset, sizeof(buffer) - offset, "%f ", ((Value_Num *)(val.second))->value);
+                offset = strlen(buffer);
             }
             else
             {
-                printf("%s ", ((Value_String *)(val.second))->value.c_str());
+                snprintf(buffer + offset, sizeof(buffer) - offset, "%s ", ((Value_String *)(val.second))->value.c_str());
+                offset = strlen(buffer);
             }
         }
-        printf("\n");
+        LOG_INFO("%s", buffer);
     }
 
     return 0;
@@ -673,7 +679,7 @@ int IO_Message::read_object(size_t bh_size, size_t mh_size, const char *p)
             }
             else
             {
-                printf("marker is neither 0x00 nor 0x02\n");
+                LOG_ERROR("marker is neither 0x00 nor 0x02");
                 return -1;
             }
         }
@@ -844,7 +850,7 @@ int IO_Message::write_object(const std::vector<std::vector<std::pair<std::string
             }
             else
             {
-                printf("write_payload failed, the value type does not match\n");
+                LOG_ERROR("write_payload failed, the value type does not match");
                 return -1;
             }
         }
@@ -877,24 +883,31 @@ int IO_Message::write_object(const std::vector<std::vector<std::pair<std::string
 
 void IO_Message::common_print()
 {
-    printf("command_name = %s, transaction_id = %ld", command_name.c_str(), transaction_id);
+    char buffer[4096] = {0};
+    int offset = 0;
+    snprintf(buffer, sizeof(buffer), "command_name = %s, transaction_id = %ld", command_name.c_str(), transaction_id);
+    offset = strlen(buffer);
     if (!object.empty())
     {
-        printf(", ");
+        snprintf(buffer + offset, sizeof(buffer) - offset, ", ");
+        offset = strlen(buffer);
         for (const auto &val : object)
         {
-            printf("%s = ", (val.first).c_str());
+            snprintf(buffer + offset, sizeof(buffer) - offset, "%s = ", (val.first).c_str());
+            offset = strlen(buffer);
             if (dynamic_cast<Value_Num *>(val.second))
             {
-                printf("%f ", ((Value_Num *)(val.second))->value);
+                snprintf(buffer + offset, sizeof(buffer) - offset, "%f ", ((Value_Num *)(val.second))->value);
+                offset = strlen(buffer);
             }
             else
             {
-                printf("%s ", ((Value_String *)(val.second))->value.c_str());
+                snprintf(buffer + offset, sizeof(buffer) - offset, "%s ", ((Value_String *)(val.second))->value.c_str());
+                offset = strlen(buffer);
             }
         }
     }
-    printf("\n");
+    LOG_INFO("%s", buffer);
 }
 
 int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
@@ -904,14 +917,17 @@ int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, st
     {
         return -1;
     }
-    printf("read basic header success, bh_size = %ld, fmt = %d, csid = %d\n", bh_size, fmt, csid);
+    LOG_INFO("read basic header success, bh_size = %ld, fmt = %d, csid = %d", bh_size, fmt, csid);
 
     if (read_audio_video_message_header(fmt, csid, bh_size, &mh_size, received_message_length_buffer) == -1)
     {
         return -1;
     }
 
-    printf("read message header success, mh_size = %ld, ", mh_size);
+    char buffer[4096] = {0};
+    int offset = 0;
+    snprintf(buffer, sizeof(buffer), "read message header success, mh_size = %ld, ", mh_size);
+    offset = strlen(buffer);
 
     if (csid_header[csid].message_length <= 0)
     {
@@ -925,33 +941,38 @@ int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, st
 
     if (csid_header[csid].timestamp != -1)
     {
-        printf("timestamp = %d, ", csid_header[csid].timestamp);
+        snprintf(buffer + offset, sizeof(buffer) - offset, "read message header success, mh_size = %ld, ", mh_size);
+        offset = strlen(buffer);
     }
     if (csid_header[csid].timestamp_delta != -1)
     {
-        printf("timestamp_delta = %d, ", csid_header[csid].timestamp_delta);
+        snprintf(buffer + offset, sizeof(buffer) - offset, "timestamp_delta = %d, ", csid_header[csid].timestamp_delta);
+        offset = strlen(buffer);
     }
     if (csid_header[csid].message_length != -1)
     {
-        printf("message_length = %d, ", csid_header[csid].message_length);
+        snprintf(buffer + offset, sizeof(buffer) - offset, "message_length = %d, ", csid_header[csid].message_length);
+        offset = strlen(buffer);
     }
     if (csid_header[csid].message_type != -1)
     {
-        printf("message_type = %d, ", csid_header[csid].message_type);
+        snprintf(buffer + offset, sizeof(buffer) - offset, "message_type = %d, ", csid_header[csid].message_type);
+        offset = strlen(buffer);
     }
     if (csid_header[csid].stream_id != -1)
     {
-        printf("stream_id = %d, ", csid_header[csid].stream_id);
+        snprintf(buffer + offset, sizeof(buffer) - offset, "stream_id = %d, ", csid_header[csid].stream_id);
+        offset = strlen(buffer);
     }
-    printf("\n");
+
+    LOG_INFO("%s", buffer);
 
     if (recv_audio_video_payload(csid, received_message_length_buffer) == -1)
     {
         return -1;
     }
 
-    printf("recv message success\n");
-
+    LOG_INFO("recv message success");
     return 0;
 }
 
@@ -1039,7 +1060,7 @@ int IO_Message::get_payload_size(const std::vector<std::vector<std::pair<std::st
             }
             else
             {
-                printf("get_payload_size failed, the value type does not match\n");
+                LOG_ERROR("get_payload_size failed, the value type does not match");
                 return -1;
             }
         }

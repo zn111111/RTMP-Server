@@ -2,6 +2,7 @@
 #include "io_socket.h"
 #include "util.h"
 #include "io_message.h"
+#include "log.h"
 
 IO_Socket::IO_Socket(st_netfd_t stfd_client, IO_Buffer *io_buffer)
 : stfd_client(stfd_client), io_buffer(io_buffer), timeout(5000000)
@@ -141,7 +142,7 @@ int IO_Socket::writev(const struct iovec *iov, int iov_size, ssize_t *nwrite)
     *nwrite = st_writev(stfd_client, iov, iov_size, timeout);
     if (*nwrite == -1)
     {
-        printf("发送失败, errno = %d\n", errno);
+        LOG_ERROR("send failed, errno = %d\n", errno);
         return -1;
     }
     return 0;

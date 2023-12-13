@@ -4,7 +4,7 @@ SRC_FILES = main_server.cpp server.cpp client.cpp io_socket.cpp rtmp_protocol.cp
 
 DIRECTORY = binary_o
 
-BINARY_FILE = ${DIRECTORY}/main_server.o ${DIRECTORY}/server.o ${DIRECTORY}/client.o ${DIRECTORY}/io_socket.o ${DIRECTORY}/rtmp_protocol.o ${DIRECTORY}/io_message.o ${DIRECTORY}/io_buffer.o ${DIRECTORY}/value_object.o ${DIRECTORY}/util.o ${DIRECTORY}/all_kinds_of_messages.o
+BINARY_FILE = ${DIRECTORY}/main_server.o ${DIRECTORY}/server.o ${DIRECTORY}/client.o ${DIRECTORY}/io_socket.o ${DIRECTORY}/rtmp_protocol.o ${DIRECTORY}/io_message.o ${DIRECTORY}/io_buffer.o ${DIRECTORY}/value_object.o ${DIRECTORY}/util.o ${DIRECTORY}/all_kinds_of_messages.o ${DIRECTORY}/log.o
 
 default: PATH ${BINARY_FILE}
 	g++ ${BINARY_FILE} ${INCL} ${LIBRARY} -lst -o server -g
@@ -43,6 +43,8 @@ ${DIRECTORY}/util.o: util.cpp
 
 ${DIRECTORY}/all_kinds_of_messages.o: all_kinds_of_messages.cpp
 	g++ -c all_kinds_of_messages.cpp ${INCL} -o ${DIRECTORY}/all_kinds_of_messages.o -g
+${DIRECTORY}/log.o: log.cpp
+	g++ -c log.cpp ${INCL} -o ${DIRECTORY}/log.o -g
 
 clean:
 	rm -f ${DIRECTORY}/*.o

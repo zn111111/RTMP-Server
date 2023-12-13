@@ -1,5 +1,6 @@
 #include "all_kinds_of_messages.h"
 #include "util.h"
+#include "log.h"
 #include <string.h>
 
 Set_Window_Size::Set_Window_Size(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer, int32_t window_size)
@@ -141,7 +142,7 @@ int Send_Object_Message::write_payload()
             }
             else
             {
-                printf("write_payload failed, the value type does not match\n");
+                LOG_ERROR("write_payload failed, the value type does not match");
                 return -1;
             }
         }
@@ -205,7 +206,7 @@ int Send_Object_Message::get_payload_size() const
             }
             else
             {
-                printf("get_payload_size failed, the value type does not match\n");
+                LOG_ERROR("get_payload_size failed, the value type does not match");
                 return -1;
             }
         }
@@ -722,7 +723,8 @@ int CheckBW::read_payload(int csid, size_t bh_size, size_t mh_size, int message_
     {
         return -1;
     }
-    printf("drop _checkbw message\n");
+
+    LOG_INFO("drop _checkbw message");
     return 0;
 }
 
@@ -851,7 +853,7 @@ int Publish::read_payload(int csid, size_t bh_size, size_t mh_size, int message_
     std::string pubuish_type;
     pubuish_type.append(p, len);
 
-    printf("command_name = %s, transaction_id = %ld, publish_type = %s\n", command_name.c_str(), transaction_id, pubuish_type.c_str());
+    LOG_INFO("command_name = %s, transaction_id = %ld, publish_type = %s\n", command_name.c_str(), transaction_id, pubuish_type.c_str());
 
     return 0;
 }
@@ -1141,7 +1143,7 @@ int SetDataFrame::read_payload(int csid, size_t bh_size, size_t mh_size, int mes
         }
         else
         {
-            printf("marker error\n");
+            LOG_ERROR("marker error");
             return -1;
         }
     }
@@ -1432,7 +1434,7 @@ int PullStreamOnStatus::write_payload()
             }
             else
             {
-                printf("write_payload failed, the value type does not match\n");
+                LOG_ERROR("write_payload failed, the value type does not match");
                 return -1;
             }
         }
@@ -1651,7 +1653,7 @@ int OnMetaData::write_payload()
             }
             else
             {
-                printf("write_payload failed, the value type does not match\n");
+                LOG_ERROR("write_payload failed, the value type does not match");
                 return -1;
             }
         }

@@ -6,6 +6,7 @@
 #include <st.h>
 #include "server.h"
 #include "client.h"
+#include "log.h"
 
 Server::Server() {}
 Server::~Server()
@@ -25,10 +26,10 @@ int Server::initialize()
     int ret = 0;
     if (st_init() == -1)
     {
-        printf("st initialize failed\n");
+        LOG_ERROR("st initialize failed");
         return -1;
     }
-    printf("st initialize success\n");
+    LOG_INFO("st initialize success");
 
     return ret;
 }
@@ -38,15 +39,15 @@ int Server::listen(int port)
     int fd = socket(AF_INET, SOCK_STREAM, 0); 
     if (fd == -1)
     {
-        printf("create linux socket error\n");
+        LOG_ERROR("create linux socket error");
         return -1;
     }
-    printf("create linux socket success\n");
+    LOG_INFO("create linux socket success");
 
     int reuse_socket = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse_socket, sizeof(int)) == -1)
     {
-        printf("setsockopt failed\n");
+        LOG_ERROR("setsockopt failed");
         return -1;
     }
 
@@ -60,29 +61,29 @@ int Server::listen(int port)
     addr.sin_addr.s_addr = INADDR_ANY;
     if (bind(fd, (const sockaddr *)&addr, sizeof(addr)) == -1)
     {
-        printf("bind socket error\n");
+        LOG_ERROR("bind socket error");
         return -1;
     }
-    printf("bind socket success\n");
+    LOG_INFO("bind socket success");
     if (::listen(fd, 10) == -1)
     {
-        printf("listen socket error\n");
+        LOG_ERROR("listen socket error");
         return -1;
     }
-    printf("listen socket success\n");
+    LOG_INFO("listen socket success");
 
     if ((stfd = st_netfd_open_socket(fd)) == NULL)
     {
-        printf("st_netfd_open_socket failed\n");
+        LOG_ERROR("st_netfd_open_socket failed");
         return -1;
     }
 
     if (st_thread_create(listend_thread, this, 0, 0) == NULL)
     {
-        printf("st thread create error\n");
+        LOG_ERROR("st thread create error");
         return -1;
     }
-    printf("st thread create success\n");
+    LOG_INFO("st thread create success");
     return 0;
 }
 
@@ -100,10 +101,10 @@ void Server::accept()
         st_netfd_t client_stfd = st_accept(stfd, NULL, NULL, ST_UTIME_NO_TIMEOUT);
         if (NULL == client_stfd)
         {
-            printf("accept client error\n");
+            LOG_ERROR("accept client error");
             continue;
         }
-        printf("accept client success\n");
+        LOG_INFO("accept client success");
 
         Client *client = new Client(client_stfd);
         clients.insert(std::pair<st_netfd_t, Client *>(client_stfd, client));
