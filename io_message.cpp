@@ -32,7 +32,7 @@ IO_Message::IO_Message(Client *client, st_netfd_t stfd_client, IO_Socket *io_soc
 
 IO_Message::~IO_Message() {io_buffer->clear();}
 
-int IO_Message::recv_message(std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int IO_Message::recv_message()
 {
     int fmt = 0, csid = 0;
     size_t bh_size = 0;
@@ -40,15 +40,15 @@ int IO_Message::recv_message(std::unordered_map<int, std::vector<int>> &received
     {
         return -1;
     }
-    LOG_INFO("read basic header success, bh_size = %ld, fmt = %d, csid = %d\n", bh_size, fmt, csid);
+    LOG_INFO("read basic header success, bh_size = %ld, fmt = %d, csid = %d", bh_size, fmt, csid);
 
     size_t mh_size = 0;
-    if (read_message_header(fmt, csid, bh_size, &mh_size, received_message_length_buffer) == -1)
+    if (read_message_header(fmt, csid, bh_size, &mh_size) == -1)
     {
         return -1;
     }
 
-    if (read_payload(csid, bh_size, mh_size, 0, received_message_length_buffer) == -1)
+    if (read_payload(csid, bh_size, mh_size, csid_header[csid].message_length, client->chunk_size) == -1)
     {
         return -1;
     }
@@ -174,7 +174,7 @@ int IO_Message::read_basic_header(int *fmt, int *csid, size_t *bh_size)
     return 0;
 }
 
-int IO_Message::read_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int IO_Message::read_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size)
 {
     size_t mh_size_array[] = {11, 7, 3, 0};
     *mh_size = mh_size_array[fmt];
@@ -194,7 +194,6 @@ int IO_Message::read_message_header(int fmt, int csid, size_t bh_size, size_t *m
     const char *p = io_buffer->get_data() + bh_size;
     if (fmt <= 2)
     {
-    
         char *pp = NULL;
         if (fmt == 0)
         {
@@ -222,15 +221,15 @@ int IO_Message::read_message_header(int fmt, int csid, size_t bh_size, size_t *m
             pp[1] = *p++;
             pp[0] = *p++;
 
-            if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
+            if (csid_header.find(csid) == csid_header.end())
             {
-                std::vector<int> temp;
-                temp.push_back(message_length);
-                received_message_length_buffer.insert(std::pair<int, std::vector<int>>(csid, temp));
+                Message_Header temp;
+                temp.message_length = message_length;
+                csid_header.insert(std::pair<int, Message_Header>(csid, temp));
             }
             else
             {
-                received_message_length_buffer[csid].push_back(message_length);
+                csid_header[csid].message_length = message_length;
             }
 
             message_type = *p++;
@@ -264,11 +263,11 @@ int IO_Message::read_message_header(int fmt, int csid, size_t bh_size, size_t *m
 
     timestamp += timestamp_delta;
 
-    LOG_INFO("read message header success, mh_size = %ld, timestamp = %d, message_length = %d, message_type = %d, stream_id = %d\n", *mh_size, timestamp, message_length, message_type, stream_id);
+    LOG_INFO("read message header success, mh_size = %ld, timestamp = %d, message_length = %d, message_type = %d, stream_id = %d", *mh_size, timestamp, message_length, message_type, stream_id);
     return 0;
 }
 
-int IO_Message::read_audio_video_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int IO_Message::read_audio_video_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size)
 {
     size_t mh_size_array[] = {11, 7, 3, 0};
     *mh_size = mh_size_array[fmt];
@@ -331,17 +330,6 @@ int IO_Message::read_audio_video_message_header(int fmt, int csid, size_t bh_siz
             pp[2] = *p++;
             pp[1] = *p++;
             pp[0] = *p++;
-
-            if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-            {
-                std::vector<int> temp;
-                temp.push_back(csid_header[csid].message_length);
-                received_message_length_buffer.insert(std::pair<int, std::vector<int>>(csid, temp));
-            }
-            else
-            {
-                received_message_length_buffer[csid].push_back(csid_header[csid].message_length);
-            }
 
             csid_header[csid].message_type = *p++;
 
@@ -424,145 +412,9 @@ int IO_Message::read_audio_video_basic_header(int *fmt, int *csid, size_t *bh_si
     return 0;
 }
 
-int IO_Message::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int IO_Message::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
-    size_t nbytes = bh_size + mh_size + message_length;
-    ssize_t nread = 0;
-    if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
-    {
-        return -1;
-    }
-    const char *p = io_buffer->get_data() + bh_size + mh_size;
-    if (csid_header[csid].message_type == 0x01)
-    {
-        return 0;
-    }
-    if (*p++ != MESSAGE_STRING)
-    {
-        return -1;
-    }
-
-    int16_t len = 0;
-    if (be2se_2bytes(p, (char *)&len) == -1)
-    {
-        return -1;
-    }
-
-    if (len <= 0)
-    {
-        return -1;
-    }
-
-    p += 2;
-    command_name.append(p, len);
-    
-    //不知道为什么，客户端发送的connect命令，object部分tcUrl对应的value里多了个字节，因此实际的payload比message header里的message length标识的大小大1个字节
-    if (command_name == "connect")
-    {
-        nbytes += 1;
-        if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
-        {
-            return -1;
-        }
-    }
-
-    p += len;
-    if (*p++ != MESSAGE_NUM)
-    {
-        return -1;
-    }
-
-    if (be2se_8bytes(p, (char *)&transaction_id) == -1)
-    {
-        return -1;
-    }
-    
-    p += 8;
-    if (*p == MESSAGE_OBJECT)
-    {
-        p++;
-        if (read_object(bh_size, mh_size, p) == -1)
-        {
-            return -1;
-        }
-    }
-    else if (*p == 0x05)
-    {
-        p++;
-        if (p < io_buffer->get_data() + io_buffer->size() && *p++ == 0x02)
-        {
-            int16_t len = 0;
-            if (p + 2 > io_buffer->get_data() + io_buffer->size() || be2se_2bytes(p, (char *)&len) == -1)
-            {
-                return -1;
-            }
-            p += 2;
-            if (len > 0)
-            {
-                std::string temp(p, len);
-                printf("%s\n", temp.c_str());
-            }
-            p += len;
-        }
-        if (p < io_buffer->get_data() + io_buffer->size() && *p++ == 0x02)
-        {
-            int16_t len = 0;
-            if (p + 2 > io_buffer->get_data() + io_buffer->size() || be2se_2bytes(p, (char *)&len) == -1)
-            {
-                return -1;
-            }
-            p += 2;
-            if (len > 0)
-            {
-                std::string temp(p, len);
-                printf("%s\n", temp.c_str());
-            }
-            p += len;
-        }
-        return 0;
-    }
-    //其他标记有待实现
-
-    //打印测试
-    if (true)
-    {
-        if (command_name == "_checkbw")
-        {
-            LOG_INFO("drop _checkbw");
-            return 0;
-        }
-        char buffer[4096] = {0};
-        int offset = 0;
-        snprintf(buffer, sizeof(buffer), "command_name = %s, transaction_id = %ld, ", command_name.c_str(), transaction_id);
-        offset = strlen(buffer);
-        for (const auto &val : object)
-        {
-            snprintf(buffer + offset, sizeof(buffer) - offset, "%s = ", (val.first).c_str());
-            offset = strlen(buffer);
-            if (dynamic_cast<Value_Num *>(val.second))
-            {
-                snprintf(buffer + offset, sizeof(buffer) - offset, "%f ", ((Value_Num *)(val.second))->value);
-                offset = strlen(buffer);
-            }
-            else
-            {
-                snprintf(buffer + offset, sizeof(buffer) - offset, "%s ", ((Value_String *)(val.second))->value.c_str());
-                offset = strlen(buffer);
-            }
-        }
-        LOG_INFO("%s", buffer);
-    }
-
+    LOG_INFO("%s", "IO_Message default implementation");
     return 0;
 }
 
@@ -910,7 +762,7 @@ void IO_Message::common_print()
     LOG_INFO("%s", buffer);
 }
 
-int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid)
 {
     int fmt = 0;
     if (read_audio_video_basic_header(&fmt, &csid, &bh_size) == -1)
@@ -919,7 +771,7 @@ int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, st
     }
     LOG_INFO("read basic header success, bh_size = %ld, fmt = %d, csid = %d", bh_size, fmt, csid);
 
-    if (read_audio_video_message_header(fmt, csid, bh_size, &mh_size, received_message_length_buffer) == -1)
+    if (read_audio_video_message_header(fmt, csid, bh_size, &mh_size) == -1)
     {
         return -1;
     }
@@ -928,16 +780,6 @@ int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, st
     int offset = 0;
     snprintf(buffer, sizeof(buffer), "read message header success, mh_size = %ld, ", mh_size);
     offset = strlen(buffer);
-
-    if (csid_header[csid].message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        csid_header[csid].message_length = received_message_length_buffer[csid][v_size - 1];
-    }
 
     if (csid_header[csid].timestamp != -1)
     {
@@ -967,7 +809,7 @@ int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, st
 
     LOG_INFO("%s", buffer);
 
-    if (recv_audio_video_payload(csid, received_message_length_buffer) == -1)
+    if (recv_audio_video_payload(csid) == -1)
     {
         return -1;
     }
@@ -976,18 +818,8 @@ int IO_Message::recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, st
     return 0;
 }
 
-int IO_Message::recv_audio_video_payload(int csid, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int IO_Message::recv_audio_video_payload(int csid)
 {
-    if (csid_header[csid].message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        csid_header[csid].message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     ssize_t nread = 0;
     while (nread < csid_header[csid].message_length)
     {

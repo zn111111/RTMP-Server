@@ -55,7 +55,7 @@ void *Client::process_thread(void *arg)
         LOG_INFO("handshake success");
 
         IO_Message *message_ptr = new ConnectMessage(client, client->stfd_client, client->io_socket, client->io_buffer);
-        if (message_ptr->recv_message(client->received_message_length_buffer) == -1)
+        if (message_ptr->recv_message() == -1)
         {
             return NULL;
         }
@@ -108,7 +108,7 @@ void *Client::process_thread(void *arg)
 
         //push flow or pull flow ?
         IdentifyClient *identify_client= new IdentifyClient(client, client->stfd_client, client->io_socket, client->io_buffer);
-        int ret = identify_client->read_header_get_payloadLength(client->received_message_length_buffer);
+        int ret = identify_client->read_header_get_payloadLength();
         std::string temp(client->io_buffer->get_data(), client->io_buffer->size());
         if (ret == -1)
         {
@@ -133,7 +133,7 @@ void *Client::process_thread(void *arg)
 
             //receive Create Stream command message
             message_ptr = new CreateStream(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             message_ptr->common_print();
             delete message_ptr;
             message_ptr = NULL;
@@ -146,26 +146,26 @@ void *Client::process_thread(void *arg)
 
             //receive _checkbw command message
             message_ptr = new CheckBW(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             delete message_ptr;
             message_ptr = NULL;
 
             //receive Get Stream Length command message
             message_ptr = new GetStreamLength(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             message_ptr->common_print();
             delete message_ptr;
             message_ptr = NULL;
 
             //receive play command message
             message_ptr = new PlayCommandMessage(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             message_ptr->common_print();
             delete message_ptr;
             message_ptr = NULL;
 
             message_ptr = new UnknownMessage(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             delete message_ptr;
             message_ptr = NULL;
 
@@ -355,7 +355,7 @@ void *Client::process_thread(void *arg)
 
             //receive releaseStream command message
             message_ptr = new ReleaseStream(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             message_ptr->common_print();
             delete message_ptr;
             message_ptr = NULL;
@@ -378,7 +378,7 @@ void *Client::process_thread(void *arg)
 
             //receive FC Publish command message
             message_ptr = new FCPublish(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             message_ptr->common_print();
             delete message_ptr;
             message_ptr = NULL;
@@ -393,7 +393,7 @@ void *Client::process_thread(void *arg)
 
             //receive Create Stream command message
             message_ptr = new CreateStream(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             message_ptr->common_print();
             delete message_ptr;
             message_ptr = NULL;
@@ -408,18 +408,18 @@ void *Client::process_thread(void *arg)
 
             //receive _checkbw command message
             message_ptr = new CheckBW(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             delete message_ptr;
             message_ptr = NULL;
 
             message_ptr = new UnknownMessage(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             delete message_ptr;
             message_ptr = NULL;
 
             //receive publish command message
             message_ptr = new Publish(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             delete message_ptr;
             message_ptr = NULL;
 
@@ -441,7 +441,7 @@ void *Client::process_thread(void *arg)
 
             //receive @setDataFrame data messsage
             message_ptr = new SetDataFrame(client, client->stfd_client, client->io_socket, client->io_buffer);
-            message_ptr->recv_message(client->received_message_length_buffer);
+            message_ptr->recv_message();
             delete message_ptr;
             message_ptr = NULL;
 
@@ -449,7 +449,7 @@ void *Client::process_thread(void *arg)
             while (true)
             {
                 size_t bh_size = 0, mh_size = 0;
-                message_ptr->recv_audio_video(bh_size, mh_size, curr_csid, client->received_message_length_buffer);
+                message_ptr->recv_audio_video(bh_size, mh_size, curr_csid);
                 csid_header[curr_csid].header_length = bh_size + mh_size;
 
                 //调试使用

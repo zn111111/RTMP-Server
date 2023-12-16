@@ -11,7 +11,7 @@
 extern int curr_csid;
 extern std::vector<std::pair<std::string, Value_Object *>> set_data_frame;
 
-struct Message_Header
+typedef struct Message_Header
 {
     Message_Header();
     ~Message_Header();
@@ -24,7 +24,7 @@ struct Message_Header
     int message_length;
     char message_type;
     int stream_id;
-};
+}Message_Header;
 
 extern std::unordered_map<int, Message_Header> csid_header;
 extern std::string audio_video_buffer;
@@ -37,16 +37,16 @@ public:
     virtual ~IO_Message();
 
 public:
-    int recv_message(std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
+    int recv_message();
     int write_message(int fmt, int csid, int timestamp, int message_length, char message_type, int stream_id);
     std::string get_command() const;
     void common_print();
 
-    int recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid, std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
+    int recv_audio_video(size_t &bh_size, size_t &mh_size, int &csid);
     const char *get_payload() const;
 
 private:
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size);
     virtual int write_header(int fmt, int csid, int timestamp, int message_length, char message_type, int stream_id);
     virtual int write_payload();
 
@@ -56,9 +56,9 @@ protected:
     int write_object(const std::vector<std::vector<std::pair<std::string, Value_Object *>>> &vec);
     int get_payload_size(const std::vector<std::vector<std::pair<std::string, Value_Object *>>> &vec) const;
     int read_basic_header(int *fmt, int *csid, size_t *bh_size);
-    int read_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size, std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
-    int recv_audio_video_payload(int csid, std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
-    int read_audio_video_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size, std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
+    int read_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size);
+    int recv_audio_video_payload(int csid);
+    int read_audio_video_message_header(int fmt, int csid, size_t bh_size, size_t *mh_size);
     int read_audio_video_basic_header(int *fmt, int *csid, size_t *bh_size);
 
 private:

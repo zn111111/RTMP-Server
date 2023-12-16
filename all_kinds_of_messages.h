@@ -126,7 +126,7 @@ public:
     ConnectMessage(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~ConnectMessage();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -140,7 +140,7 @@ public:
     ReleaseStream(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~ReleaseStream();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -154,7 +154,7 @@ public:
     FCPublish(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~FCPublish();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -168,7 +168,7 @@ public:
     CreateStream(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~CreateStream();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -182,7 +182,7 @@ public:
     CheckBW(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~CheckBW();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -196,7 +196,7 @@ public:
     UnknownMessage(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~UnknownMessage();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -210,7 +210,7 @@ public:
     Publish(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~Publish();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -266,7 +266,7 @@ public:
     SetDataFrame(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~SetDataFrame();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -280,7 +280,7 @@ public:
     IdentifyClient(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~IdentifyClient();
 
-    int read_header_get_payloadLength(std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
+    int read_header_get_payloadLength();
 
 private:
     st_netfd_t stfd_client;
@@ -294,7 +294,7 @@ public:
     GetStreamLength(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~GetStreamLength();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;
@@ -308,7 +308,7 @@ public:
     PlayCommandMessage(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer);
     ~PlayCommandMessage();
 
-    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer); 
+    virtual int read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size); 
 
 private:
     st_netfd_t stfd_client;

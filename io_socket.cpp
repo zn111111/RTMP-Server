@@ -142,7 +142,7 @@ int IO_Socket::writev(const struct iovec *iov, int iov_size, ssize_t *nwrite)
     *nwrite = st_writev(stfd_client, iov, iov_size, timeout);
     if (*nwrite == -1)
     {
-        LOG_ERROR("send failed, errno = %d\n", errno);
+        LOG_ERROR("send failed, errno = %d", errno);
         return -1;
     }
     return 0;

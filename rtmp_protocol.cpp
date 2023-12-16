@@ -41,11 +41,11 @@ int RTMP_Protocol::handshake()
     return 0;
 }
 
-int RTMP_Protocol::recv_connect_message(IO_Message *io_message, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int RTMP_Protocol::recv_connect_message(IO_Message *io_message)
 {
     while (true)
     {
-        if (io_message->recv_message(received_message_length_buffer) == -1)
+        if (io_message->recv_message() == -1)
         {
             return -1;
         }

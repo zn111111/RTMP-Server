@@ -29,7 +29,6 @@ private:
     IO_Socket *io_socket;
     RTMP_Protocol *rtmp;
     IO_Buffer *io_buffer;
-    std::unordered_map<int, std::vector<int>> received_message_length_buffer;
 };
 
 #endif

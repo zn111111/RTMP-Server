@@ -12,7 +12,7 @@ public:
 
 public:
     int handshake();
-    int recv_connect_message(IO_Message *io_message, std::unordered_map<int, std::vector<int>> &received_message_length_buffer);
+    int recv_connect_message(IO_Message *io_message);
     
 
 private:

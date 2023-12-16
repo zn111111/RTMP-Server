@@ -413,37 +413,42 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 ConnectMessage::~ConnectMessage() {}
 
-int ConnectMessage::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int ConnectMessage::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    //不知道为什么，客户端发送的connect命令，object部分tcUrl对应的value里多了个字节，因此实际的payload比message header里的message length标识的大小大1个字节
-
-    if (message_length <= 0)
+    ssize_t nread = 0;
+    while (nread < message_length)
     {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
+        ssize_t temp = 0;
+        size_t n_bytes = 0;
+        //payload大于接收窗口大小，就需要分多次接收
+        //第一次接收到的是纯payload，因为头部已经接收g过了
+        //从第二次开始接收到的payload前面就会带上头部（fmt=3，也就是只有basic header，没有message header）
+        if (nread > 0)
+        {
+            n_bytes = ((message_length - nread) <= chunk_size) ? (message_length - nread + 1) : chunk_size + 1;
+        }
+        else
+        {
+            n_bytes = ((message_length - nread) <= chunk_size) ? (message_length - nread) : chunk_size;
+        }
+        n_bytes += io_buffer->size();
+        if (io_socket->read_nbytes_cycle(n_bytes, &temp) == -1)
         {
             return -1;
         }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1] + 1;
-    }
-    else
-    {
-        message_length += 1;
-    }
 
-    size_t nbytes = bh_size + mh_size + message_length;
-    ssize_t nread = 0;
-    if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
-    {
-        return -1;
-    }
-    //这里使用ffmpeg推流的时候，传输的数据rtmp://192.168.0.21:1935/live中
-    //不知道为什么会多出一个字节c3（在wireshark中显示的是原始数据，也就是不考虑符号）
-    //实际上查看二进制数据的补码知道该数据是负数，也就是-61，因此要过滤掉-61
-    size_t error_pos = 0;
-    if ((error_pos = io_buffer->find(-61, 0)) != std::string::npos)
-    {
-        io_buffer->erase(error_pos, 1);
+        //如果不是第一次接收，就要去掉头部,此时temp表示接收到的payload大小
+        //删掉buffer里的头部，否则payload里会多出一个字节的头部
+        if (nread > 0)
+        {
+            temp--;
+
+            size_t index = io_buffer->size() - 1;
+            index -= temp;
+            io_buffer->erase(index, 1);
+        }
+        
+        nread += temp;
     }
 
     const char *p = io_buffer->get_data() + bh_size + mh_size;
@@ -501,18 +506,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 ReleaseStream::~ReleaseStream() {}
 
-int ReleaseStream::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int ReleaseStream::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -569,18 +564,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 FCPublish::~FCPublish() {}
 
-int FCPublish::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int FCPublish::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -637,18 +622,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 CreateStream::~CreateStream() {}
 
-int CreateStream::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int CreateStream::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -705,18 +680,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 CheckBW::~CheckBW() {}
 
-int CheckBW::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int CheckBW::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -733,18 +698,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 UnknownMessage::~UnknownMessage() {}
 
-int UnknownMessage::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int UnknownMessage::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -760,18 +715,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 Publish::~Publish() {}
 
-int Publish::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int Publish::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -853,7 +798,7 @@ int Publish::read_payload(int csid, size_t bh_size, size_t mh_size, int message_
     std::string pubuish_type;
     pubuish_type.append(p, len);
 
-    LOG_INFO("command_name = %s, transaction_id = %ld, publish_type = %s\n", command_name.c_str(), transaction_id, pubuish_type.c_str());
+    LOG_INFO("command_name = %s, transaction_id = %ld, publish_type = %s", command_name.c_str(), transaction_id, pubuish_type.c_str());
 
     return 0;
 }
@@ -1004,18 +949,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 SetDataFrame::~SetDataFrame() {}
 
-int SetDataFrame::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int SetDataFrame::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -1156,7 +1091,7 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 IdentifyClient::~IdentifyClient() {}
 
-int IdentifyClient::read_header_get_payloadLength(std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int IdentifyClient::read_header_get_payloadLength()
 {
     int fmt = 0, csid = 0;
     size_t bh_size = 0;
@@ -1166,19 +1101,12 @@ int IdentifyClient::read_header_get_payloadLength(std::unordered_map<int, std::v
     }
 
     size_t mh_size = 0;
-    if (read_message_header(fmt, csid, bh_size, &mh_size, received_message_length_buffer) == -1)
+    if (read_message_header(fmt, csid, bh_size, &mh_size) == -1)
     {
         return -1;
     }
 
-    if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-    {
-        return -1;
-    }
-    size_t v_size = received_message_length_buffer[csid].size();
-    int message_length = received_message_length_buffer[csid][v_size - 1];
-
-    return message_length;
+    return csid_header[csid].message_length;
 }
 
 GetStreamLength::GetStreamLength(Client *client, st_netfd_t stfd_client, IO_Socket *io_socket, IO_Buffer *io_buffer) : stfd_client(stfd_client), io_socket(io_socket), io_buffer(io_buffer),
@@ -1186,18 +1114,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 GetStreamLength::~GetStreamLength() {}
 
-int GetStreamLength::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int GetStreamLength::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
@@ -1254,18 +1172,8 @@ IO_Message(client, stfd_client, io_socket, io_buffer) {}
 
 PlayCommandMessage::~PlayCommandMessage() {}
 
-int PlayCommandMessage::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, std::unordered_map<int, std::vector<int>> &received_message_length_buffer)
+int PlayCommandMessage::read_payload(int csid, size_t bh_size, size_t mh_size, int message_length, int chunk_size)
 {
-    if (message_length <= 0)
-    {
-        if (received_message_length_buffer.find(csid) == received_message_length_buffer.end())
-        {
-            return -1;
-        }
-        size_t v_size = received_message_length_buffer[csid].size();
-        message_length = received_message_length_buffer[csid][v_size - 1];
-    }
-
     size_t nbytes = bh_size + mh_size + message_length;
     ssize_t nread = 0;
     if (io_socket->read_nbytes_cycle(nbytes, &nread) == -1)
